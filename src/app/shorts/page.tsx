@@ -209,8 +209,9 @@ export default function ShortsPage() {
               className="relative w-full max-w-[450px] aspect-[9/16] bg-[#1a1a1a] sm:rounded-2xl overflow-hidden shadow-2xl"
             >
               <MediaPlayer 
+                key={currentShort.id}
                 title={currentShort.title}
-                src={`youtube/${currentShort.id}`}
+                src={`https://www.youtube.com/watch?v=${currentShort.id}`}
                 autoplay
                 playsInline
                 muted={isMuted}
@@ -218,14 +219,26 @@ export default function ShortsPage() {
                   try {
                     handleNext();
                   } catch (e) {
-                    console.error('Error auto-advancing:', e);
+                    // Silent
                   }
                 }}
                 className="w-full h-full"
+                viewType="video"
+                streamType="on-demand"
+                load="eager"
+                crossOrigin
+                poster={`https://i.ytimg.com/vi/${currentShort.id}/hqdefault.jpg`}
                 onError={(e) => {
-                  if (e?.detail?.message !== 'provider destroyed') {
-                    console.error('MediaPlayer error:', e);
+                  const msg = e?.detail?.message?.toLowerCase() || '';
+                  if (
+                    msg.includes('provider destroyed') || 
+                    msg.includes('signal is aborted') || 
+                    msg.includes('setattribute') ||
+                    msg.includes('null')
+                  ) {
+                    return;
                   }
+                  console.error('MediaPlayer error:', e);
                 }}
               >
                 <MediaProvider className="w-full h-full" />
