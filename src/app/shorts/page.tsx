@@ -199,139 +199,120 @@ export default function ShortsPage() {
       <SidebarGuide isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} forceOverlay={true} />
       
       <div className={`flex-1 relative flex items-center justify-center ${ptClass}`}>
-        <AnimatePresence mode="wait">
+        {/* Stable Player Background */}
+        <div className="relative w-full max-w-[450px] aspect-[9/16] bg-[#1a1a1a] sm:rounded-2xl overflow-hidden shadow-2xl">
+          <SafeShortsPlayer 
+            video={currentShort}
+            isMuted={isMuted}
+            onEnded={() => {
+              try {
+                handleNext();
+              } catch (e) {
+                // Silent
+              }
+            }}
+            handleNext={handleNext}
+          />
+
+          {/* Animated UI Overlay */}
+          <AnimatePresence mode="wait">
             <motion.div 
               key={currentShort.id}
-              initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -100 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="relative w-full max-w-[450px] aspect-[9/16] bg-[#1a1a1a] sm:rounded-2xl overflow-hidden shadow-2xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 z-10 pointer-events-none"
             >
-              <MediaPlayer 
-                key={currentShort.id}
-                title={currentShort.title}
-                src={`https://www.youtube.com/watch?v=${currentShort.id}`}
-                autoplay
-                playsInline
-                muted={isMuted}
-                onEnded={() => {
-                  try {
-                    handleNext();
-                  } catch (e) {
-                    // Silent
-                  }
-                }}
-                className="w-full h-full"
-                viewType="video"
-                streamType="on-demand"
-                load="eager"
-                crossOrigin
-                poster={`https://i.ytimg.com/vi/${currentShort.id}/hqdefault.jpg`}
-                onError={(e) => {
-                  const msg = e?.detail?.message?.toLowerCase() || '';
-                  if (
-                    msg.includes('provider destroyed') || 
-                    msg.includes('signal is aborted') || 
-                    msg.includes('setattribute') ||
-                    msg.includes('null')
-                  ) {
-                    return;
-                  }
-                  console.error('MediaPlayer error:', e);
-                }}
-              >
-                <MediaProvider className="w-full h-full" />
-              </MediaPlayer>
-
-            {/* UI Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/40 pointer-events-none flex flex-col justify-between p-6">
-              <div className="flex justify-between items-start pointer-events-auto">
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10"
-                >
-                  <Timer className="w-4 h-4 text-red-500 animate-pulse" />
-                  <span className="text-xs font-bold text-white">{dailyShortsCount} / {limits.shortsDailyLimit || '∞'}</span>
-                </motion.div>
-                <motion.button 
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setIsMuted(!isMuted)}
-                  className="p-2 bg-black/20 backdrop-blur-md rounded-full text-white border border-white/10"
-                >
-                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                </motion.button>
-              </div>
-
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="space-y-4 pointer-events-auto"
-              >
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-3">
-                      <motion.div 
-                        whileHover={{ scale: 1.1 }}
-                        className="w-10 h-10 rounded-full bg-primary/20 border border-white/20 overflow-hidden"
-                      >
-                        {currentShort.channelAvatar ? (
-                          <img src={currentShort.channelAvatar} alt={currentShort.channelName} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-red-500 to-purple-600" />
-                        )}
-                      </motion.div>
-                      <span className="font-bold text-white text-sm">@{currentShort.channelName}</span>
-                    <motion.button 
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="bg-white text-black text-xs font-black px-4 py-1.5 rounded-full"
-                    >
-                      {t('subscriptions')}
-                    </motion.button>
-                  </div>
-                  <p className="text-white text-sm line-clamp-2">{currentShort.title}</p>
-                  <div className="flex items-center gap-2 text-white/80 text-xs">
-                    <Music2 className="w-3 h-3 animate-[spin_3s_linear_infinite]" />
-                    <span className="truncate">Original Sound - {currentShort.channelName}</span>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Right Side Actions */}
-            <div className="absolute right-4 bottom-24 flex flex-col items-center gap-6 z-20">
-              {[
-                { icon: <Play className="w-6 h-6 fill-current" />, label: currentShort.likes, delay: 0.5, highlight: 'group-hover:bg-red-500/20 group-hover:border-red-500/40' },
-                { icon: <MessageCircle className="w-6 h-6" />, label: currentShort.comments, delay: 0.6 },
-                { icon: <Share2 className="w-6 h-6" />, label: '', delay: 0.7 },
-              ].map((action, i) => (
-                <motion.div 
-                  key={i}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: action.delay }}
-                  className="flex flex-col items-center gap-1 group"
-                >
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/40 flex flex-col justify-between p-6">
+                <div className="flex justify-between items-start pointer-events-auto">
                   <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10"
+                  >
+                    <Timer className="w-4 h-4 text-red-500 animate-pulse" />
+                    <span className="text-xs font-bold text-white">{dailyShortsCount} / {limits.shortsDailyLimit || '∞'}</span>
+                  </motion.div>
+                  <motion.button 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    className={`w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 cursor-pointer transition-all ${action.highlight || 'hover:bg-white/20'}`}
+                    onClick={() => setIsMuted(!isMuted)}
+                    className="p-2 bg-black/20 backdrop-blur-md rounded-full text-white border border-white/10"
                   >
-                    {action.icon}
-                  </motion.div>
-                  {action.label && <span className="text-[10px] font-bold text-white">{action.label}</span>}
+                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                  </motion.button>
+                </div>
+
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ delay: 0.4 }}
+                  className="space-y-4 pointer-events-auto"
+                >
+                  <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-3">
+                        <motion.div 
+                          whileHover={{ scale: 1.1 }}
+                          className="w-10 h-10 rounded-full bg-primary/20 border border-white/20 overflow-hidden"
+                        >
+                          {currentShort.channelAvatar ? (
+                            <img src={currentShort.channelAvatar} alt={currentShort.channelName} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-red-500 to-purple-600" />
+                          )}
+                        </motion.div>
+                        <span className="font-bold text-white text-sm">@{currentShort.channelName}</span>
+                      <motion.button 
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="bg-white text-black text-xs font-black px-4 py-1.5 rounded-full"
+                      >
+                        {t('subscriptions')}
+                      </motion.button>
+                    </div>
+                    <p className="text-white text-sm line-clamp-2">{currentShort.title}</p>
+                    <div className="flex items-center gap-2 text-white/80 text-xs">
+                      <Music2 className="w-3 h-3 animate-[spin_3s_linear_infinite]" />
+                      <span className="truncate">Original Sound - {currentShort.channelName}</span>
+                    </div>
+                  </div>
                 </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </AnimatePresence>
+              </div>
+
+              {/* Right Side Actions inside animated container for fade effect */}
+              <div className="absolute right-4 bottom-24 flex flex-col items-center gap-6 z-20 pointer-events-auto">
+                {[
+                  { icon: <Play className="w-6 h-6 fill-current" />, label: currentShort.likes, delay: 0.5, highlight: 'group-hover:bg-red-500/20 group-hover:border-red-500/40' },
+                  { icon: <MessageCircle className="w-6 h-6" />, label: currentShort.comments, delay: 0.6 },
+                  { icon: <Share2 className="w-6 h-6" />, label: '', delay: 0.7 },
+                ].map((action, i) => (
+                  <motion.div 
+                    key={i}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: action.delay }}
+                    className="flex flex-col items-center gap-1 group"
+                  >
+                    <motion.div 
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className={`w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 cursor-pointer transition-all ${action.highlight || 'hover:bg-white/20'}`}
+                    >
+                      {action.icon}
+                    </motion.div>
+                    {action.label && <span className="text-[10px] font-bold text-white">{action.label}</span>}
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Limit Reached Modal */}
