@@ -24,6 +24,52 @@ interface ShortVideo {
   comments: string;
 }
 
+function SafeShortsPlayer({ video, isMuted, onEnded, handleNext }: { 
+  video: ShortVideo, 
+  isMuted: boolean, 
+  onEnded: () => void,
+  handleNext: () => void 
+}) {
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMounted(true), 100);
+    return () => {
+      setIsMounted(false);
+      clearTimeout(timer);
+    };
+  }, [video.id]);
+
+  if (!isMounted) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a]">
+        <Loader2 className="w-8 h-8 text-white/20 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <MediaPlayer 
+      key={video.id}
+      title={video.title}
+      src={`youtube/${video.id}`}
+      autoplay
+      playsInline
+      muted={isMuted}
+      onEnded={onEnded}
+      className="w-full h-full"
+      onError={(e) => {
+        if (e?.detail?.message?.includes('destroyed') || e?.detail?.message?.includes('aborted')) {
+          return;
+        }
+        console.error('MediaPlayer error:', e);
+      }}
+    >
+      <MediaProvider className="w-full h-full" />
+    </MediaPlayer>
+  );
+}
+
 export default function ShortsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { direction, t, showRamadanCountdown, language } = useI18n();
@@ -32,6 +78,7 @@ export default function ShortsPage() {
   const [isSm, setIsSm] = useState(false);
   const [videos, setVideos] = useState<ShortVideo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     setDaysUntilRamadan(getDaysUntilRamadan());
@@ -60,7 +107,7 @@ export default function ShortsPage() {
             title: v.title,
             channelName: v.channelName,
             channelAvatar: v.channelAvatar,
-            likes: v.views, // Use views as likes for demo if likes not available
+            likes: v.views, 
             comments: '...',
           }));
           setVideos(mappedVideos);
@@ -99,14 +146,13 @@ export default function ShortsPage() {
     limits
   } = useWellBeing();
 
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
 
   const currentShort = videos[currentIndex];
 
   useEffect(() => {
-    resetContinuousTime(); // Reset session time when entering shorts
+    resetContinuousTime();
   }, [resetContinuousTime]);
 
   useEffect(() => {
@@ -127,7 +173,7 @@ export default function ShortsPage() {
         toast.info(t('end_of_feed'));
       }
 
-  }, [currentIndex, isShortsLimitReached, incrementShortsCount, videos.length]);
+  }, [currentIndex, isShortsLimitReached, incrementShortsCount, videos.length, t]);
 
   const handlePrev = useCallback(() => {
     if (currentIndex > 0) {
@@ -135,7 +181,6 @@ export default function ShortsPage() {
     }
   }, [currentIndex]);
 
-  // Handle scroll/swipe logic
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaY) > 50) {
@@ -199,7 +244,6 @@ export default function ShortsPage() {
       <SidebarGuide isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} forceOverlay={true} />
       
       <div className={`flex-1 relative flex items-center justify-center ${ptClass}`}>
-        {/* Stable Player Background */}
         <div className="relative w-full max-w-[450px] aspect-[9/16] bg-[#1a1a1a] sm:rounded-2xl overflow-hidden shadow-2xl">
           <SafeShortsPlayer 
             video={currentShort}
@@ -214,7 +258,6 @@ export default function ShortsPage() {
             handleNext={handleNext}
           />
 
-          {/* Animated UI Overlay */}
           <AnimatePresence mode="wait">
             <motion.div 
               key={currentShort.id}
@@ -285,7 +328,6 @@ export default function ShortsPage() {
                 </motion.div>
               </div>
 
-              {/* Right Side Actions inside animated container for fade effect */}
               <div className="absolute right-4 bottom-24 flex flex-col items-center gap-6 z-20 pointer-events-auto">
                 {[
                   { icon: <Play className="w-6 h-6 fill-current" />, label: currentShort.likes, delay: 0.5, highlight: 'group-hover:bg-red-500/20 group-hover:border-red-500/40' },
@@ -315,7 +357,6 @@ export default function ShortsPage() {
         </div>
       </div>
 
-      {/* Limit Reached Modal */}
       <AnimatePresence>
         {showLimitModal && (
           <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
@@ -324,7 +365,7 @@ export default function ShortsPage() {
               animate={{ opacity: 1, scale: 1 }}
               className="bg-[#1a1a1a] border border-white/10 rounded-3xl p-8 max-w-md w-full text-center space-y-6"
             >
-              <div className="flex justify-center">
+              <div className="justify-center flex">
                 <div className="p-4 bg-red-500/20 rounded-full">
                   <Timer className="w-12 h-12 text-red-500" />
                 </div>
